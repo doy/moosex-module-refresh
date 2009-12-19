@@ -32,6 +32,37 @@ sub _pm_file_to_mod {
     return $file;
 }
 
+sub find_dependent_packages {
+    my $self = shift;
+    my ($package) = @_;
+    my $meta = Class::MOP::class_of($package);
+    return unless defined $meta;
+    if ($meta->isa('Moose::Meta::Class')) {
+        return $meta->subclasses;
+    }
+    elsif ($meta->isa('Moose::Meta::Role')) {
+        # XXX: can this be pushed back into Moose::Meta::Role?
+        my @classes;
+        for my $class_meta (Class::MOP::get_all_metaclass_instances) {
+            next unless $class_meta->isa('Moose::Meta::Class')
+                     || $class_meta->isa('Moose::Meta::Role');
+            push @classes, $class_meta->name
+                if $class_meta->does_role($meta->name);
+        }
+        return @classes;
+    }
+    else {
+        die "unknown metaclass for $package ($meta)";
+    }
+}
+
+after refresh_module => sub {
+    my $self = shift;
+    my ($modfile) = @_;
+    $self->refresh_module(Class::MOP::_class_to_pmfile($_))
+        for $self->find_dependent_packages(_pm_file_to_mod($modfile));
+};
+
 after unload_module => sub {
     my $self = shift;
     my $mod = _pm_file_to_mod($_[0]);
