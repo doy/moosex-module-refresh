@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 16;
 
 use MooseX::Module::Refresh;
 
@@ -52,6 +52,8 @@ is($foobar->baz, 'FOO', "We got the right new result");
 is($foobar->foo, 1, "We got the right new result");
 ok(!$foobar->can('bar'), "the bar method was removed");
 ok(!$foobar->can('clear_foo'), "the clear_foo method was removed");
+ok(FooBar->meta->has_attribute('baz'), "the baz attribute exists");
+ok(!FooBar->meta->has_attribute('foo'), "the foo attribute was removed");
 
 # After a refresh, did we blow away our non-file-based comp?
 can_ok('FooBar', 'not_in_foobarpm');
