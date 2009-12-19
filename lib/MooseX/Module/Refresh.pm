@@ -24,7 +24,7 @@ MooseX::Module::Refresh - Module::Refresh for Moose classes
 
 =cut
 
-sub _pm_file_to_mod {
+sub _pmfile_to_class {
     my ($file) = @_;
     $file =~ s{\.pm$}{};
     # XXX: is this correct on windows?
@@ -60,12 +60,12 @@ after refresh_module => sub {
     my $self = shift;
     my ($modfile) = @_;
     $self->refresh_module(Class::MOP::_class_to_pmfile($_))
-        for $self->find_dependent_packages(_pm_file_to_mod($modfile));
+        for $self->find_dependent_packages(_pmfile_to_class($modfile));
 };
 
 after unload_module => sub {
     my $self = shift;
-    my $mod = _pm_file_to_mod($_[0]);
+    my $mod = _pmfile_to_class($_[0]);
     my $meta = Class::MOP::class_of($mod);
     return unless defined $meta;
     return unless $meta->isa('Moose::Meta::Class');
