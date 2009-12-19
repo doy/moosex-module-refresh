@@ -5,10 +5,19 @@ extends 'Module::Refresh';
 
 =head1 NAME
 
-MooseX::Module::Refresh -
+MooseX::Module::Refresh - Module::Refresh for Moose classes
 
 =head1 SYNOPSIS
 
+  # During each request, call this once to refresh changed modules:
+
+  MooseX::Module::Refresh->refresh;
+
+  # Each night at midnight, you automatically download the latest
+  # Acme::Current from CPAN.  Use this snippet to make your running
+  # program pick it up off disk:
+
+  $refresher->refresh_module('Acme/Current.pm');
 
 =head1 DESCRIPTION
 
@@ -18,6 +27,7 @@ MooseX::Module::Refresh -
 sub _pm_file_to_mod {
     my ($file) = @_;
     $file =~ s{\.pm$}{};
+    # XXX: is this correct on windows?
     $file =~ s{/}{::}g;
     return $file;
 }
@@ -29,12 +39,17 @@ after unload_module => sub {
     return unless defined $meta;
     return unless $meta->isa('Moose::Meta::Class');
     if ($meta->is_immutable) {
+        # XXX: we can probably do better here, if we try hard enough - would
+        # require walking the entire inheritance tree downwards though
         warn "Can't modify an immutable class";
         return;
     }
     $self->unload_methods($meta);
     $self->unload_attrs($meta);
-    # XXX: this is probably wrong, but...
+    # XXX: this is probably wrong, but necessary for now, since the metaclass
+    # still existing means that Moose::init_meta won't set the default base
+    # class. this will break things that try to "use base" something before
+    # doing "use Moose", not sure how to get around that.
     $meta->superclasses('Moose::Object');
     bless $meta, 'Moose::Meta::Class';
     # XXX: why is this breaking
@@ -47,6 +62,7 @@ sub unload_methods {
     my $self = shift;
     my ($meta) = @_;
     for my $meth ($meta->get_method_list) {
+        # don't remove things that unload_subs didn't remove
         $meta->remove_method($meth)
             unless exists $DB::sub{$meta->name . "::$meth"};
     }
