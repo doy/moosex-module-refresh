@@ -1,7 +1,8 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
-use Test::More tests => 10;
+use Test::More tests => 11;
+use Test::Exception;
 
 use MooseX::Module::Refresh;
 
@@ -48,6 +49,16 @@ sub bar { 'baz' }
 $foobar = FooBarSub->new(foo => 'FOO');
 is($foobar->bar, 'barsub', "We got the right result, still");
 is($foobar->foo, 'FOOsub', "We got the right result, still");
+
+throws_ok { $r->refresh } qr/syntax error.*"has baz"/;
+
+write_out($file, <<".");
+package FooBar; 
+use Moose;
+has baz => (is => 'ro', predicate => 'foo');
+sub bar { 'baz' }
+1;
+.
 
 $r->refresh;
 
