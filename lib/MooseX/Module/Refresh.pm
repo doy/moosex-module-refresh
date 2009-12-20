@@ -44,6 +44,7 @@ sub find_dependent_packages {
         # XXX: can this be pushed back into Moose::Meta::Role?
         my @classes;
         for my $class_meta (Class::MOP::get_all_metaclass_instances) {
+            next if $class_meta->name eq $meta->name;
             next unless $class_meta->isa('Moose::Meta::Class')
                      || $class_meta->isa('Moose::Meta::Role');
             push @classes, $class_meta->name
